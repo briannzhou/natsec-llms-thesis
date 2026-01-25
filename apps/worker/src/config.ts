@@ -1,4 +1,13 @@
+import { config as dotenvConfig } from 'dotenv';
+import { resolve } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { QualityConfig } from '@event-monitor/shared';
+
+// Load environment variables from root .env.local
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenvConfig({ path: resolve(__dirname, '../../../.env.local') });
 
 // Environment variables
 export const config = {

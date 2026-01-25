@@ -1,44 +1,35 @@
 // Helper functions for generating realistic mock data
 
-// Pre-computed valid H3 indices at different resolutions for various global locations
-// These were generated using h3-js to ensure correct hexagon rendering on maps
-export const H3_INDICES = {
-  // Ukraine - Bakhmut region
-  ukraine: {
-    res4: '842d5a7ffffffff',
-    res6: '862d5a77fffffff',
-    res8: '882d5a7699fffff',
-    coords: [48.595, 37.999] as [number, number],
-  },
-  // Syria - Idlib region
-  syria: {
-    res4: '843269fffffffff',
-    res6: '8632697ffffffff',
-    res8: '883269767ffffff',
-    coords: [35.931, 36.634] as [number, number],
-  },
-  // Sudan - Khartoum
-  sudan: {
-    res4: '8427ccbffffffff',
-    res6: '8627ccbffffffff',
-    res8: '8827ccb6dffffff',
-    coords: [15.588, 32.534] as [number, number],
-  },
-  // Venezuela - Caracas
-  venezuela: {
-    res4: '844c9cbffffffff',
-    res6: '864c9cb7fffffff',
-    res8: '884c9cb65ffffff',
-    coords: [10.491, -66.902] as [number, number],
-  },
-  // Myanmar - Yangon
-  myanmar: {
-    res4: '8430dd7ffffffff',
-    res6: '8630dd77fffffff',
-    res8: '8830dd7689fffff',
-    coords: [16.866, 96.195] as [number, number],
-  },
+import { latLngToCell } from 'h3-js';
+
+// Location coordinates [latitude, longitude]
+const LOCATION_COORDS = {
+  ukraine: [48.595, 37.999] as [number, number],   // Bakhmut region
+  syria: [35.931, 36.634] as [number, number],     // Idlib region
+  sudan: [15.588, 32.534] as [number, number],     // Khartoum
+  venezuela: [10.491, -66.902] as [number, number], // Caracas
+  myanmar: [16.866, 96.195] as [number, number],   // Yangon
 } as const;
+
+// Compute H3 indices dynamically from coordinates
+function computeH3Indices(coords: [number, number]) {
+  const [lat, lng] = coords;
+  return {
+    res4: latLngToCell(lat, lng, 4),
+    res6: latLngToCell(lat, lng, 6),
+    res8: latLngToCell(lat, lng, 8),
+    coords,
+  };
+}
+
+// Generate H3 indices for all locations
+export const H3_INDICES = {
+  ukraine: computeH3Indices(LOCATION_COORDS.ukraine),
+  syria: computeH3Indices(LOCATION_COORDS.syria),
+  sudan: computeH3Indices(LOCATION_COORDS.sudan),
+  venezuela: computeH3Indices(LOCATION_COORDS.venezuela),
+  myanmar: computeH3Indices(LOCATION_COORDS.myanmar),
+};
 
 export type LocationKey = keyof typeof H3_INDICES;
 

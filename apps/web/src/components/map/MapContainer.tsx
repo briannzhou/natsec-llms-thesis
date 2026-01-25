@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import Map, { NavigationControl } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import DeckGL from '@deck.gl/react';
 import { H3HexagonLayer } from '@deck.gl/geo-layers';
-import { useAdaptiveH3, getH3IndexField } from './useAdaptiveH3';
+import { useAdaptiveResolution, useH3IndexResolver, getH3IndexField } from './useAdaptiveH3';
 import type { EventWithPosts } from '@event-monitor/shared';
 import type { PickingInfo } from '@deck.gl/core';
 
@@ -29,7 +29,18 @@ const EVENT_COLORS: Record<string, [number, number, number, number]> = {
   other: [107, 114, 128, 200],     // Gray
 };
 
-const SELECTED_COLOR: [number, number, number, number] = [255, 255, 255, 255];
+// Lighten a color by blending it with white
+function lightenColor(
+  color: [number, number, number, number],
+  amount: number = 0.4
+): [number, number, number, number] {
+  return [
+    Math.round(color[0] + (255 - color[0]) * amount),
+    Math.round(color[1] + (255 - color[1]) * amount),
+    Math.round(color[2] + (255 - color[2]) * amount),
+    255, // Full opacity for selected
+  ];
+}
 
 interface MapContainerProps {
   events: EventWithPosts[];
@@ -43,44 +54,58 @@ export function MapContainer({
   onEventSelect,
 }: MapContainerProps) {
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE);
-  const h3Resolution = useAdaptiveH3(viewState.zoom);
+  const resolution = useAdaptiveResolution(viewState.zoom);
+  const resolveH3Index = useH3IndexResolver(resolution);
 
   const getEventColor = useCallback(
     (event: EventWithPosts): [number, number, number, number] => {
+      const baseColor = EVENT_COLORS[event.event_type ?? 'other'] ?? EVENT_COLORS.other;
       if (event.id === selectedEventId) {
-        return SELECTED_COLOR;
+        return lightenColor(baseColor);
       }
-      return EVENT_COLORS[event.event_type ?? 'other'] ?? EVENT_COLORS.other;
+      return baseColor;
     },
     [selectedEventId]
   );
 
-  const layers = [
-    new H3HexagonLayer({
-      id: 'events-h3',
-      data: events,
-      pickable: true,
-      filled: true,
-      extruded: false,
-      elevationScale: 0,
-      getHexagon: (d: EventWithPosts) => {
-        const field = getH3IndexField(h3Resolution) as keyof EventWithPosts;
-        return d[field] as string;
-      },
-      getFillColor: getEventColor,
-      getLineColor: [255, 255, 255, 100],
-      lineWidthMinPixels: 1,
-      onClick: (info: PickingInfo<EventWithPosts>) => {
-        if (info.object) {
-          onEventSelect(info.object.id);
-        }
-      },
-      updateTriggers: {
-        getFillColor: selectedEventId,
-        getHexagon: h3Resolution,
-      },
-    }),
-  ];
+  const layers = useMemo(
+    () => [
+      new H3HexagonLayer({
+        id: 'events-h3',
+        data: events,
+        pickable: true,
+        filled: true,
+        extruded: false,
+        elevationScale: 0,
+        getHexagon: (d: EventWithPosts) => {
+          const field = getH3IndexField() as keyof EventWithPosts;
+          const h3Index = d[field] as string;
+          return resolveH3Index(h3Index) ?? h3Index;
+        },
+        getFillColor: getEventColor,
+        getLineColor: [255, 255, 255, 100],
+        lineWidthMinPixels: 1,
+        onClick: (info: PickingInfo<EventWithPosts>) => {
+          if (info.object) {
+            onEventSelect(info.object.id);
+            if (info.object.latitude && info.object.longitude) {
+              setViewState((prev) => ({
+                ...prev,
+                longitude: info.object!.longitude!,
+                latitude: info.object!.latitude!,
+                zoom: Math.max(prev.zoom, 6),
+              }));
+            }
+          }
+        },
+        updateTriggers: {
+          getFillColor: selectedEventId,
+          getHexagon: resolution,
+        },
+      }),
+    ],
+    [events, resolveH3Index, getEventColor, onEventSelect, selectedEventId, resolution]
+  );
 
   return (
     <DeckGL
@@ -95,6 +120,7 @@ export function MapContainer({
       <Map
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/mapbox/dark-v11"
+        projection={{ name: 'mercator' }}
         style={{ width: '100%', height: '100%' }}
       >
         <NavigationControl position="top-right" />

@@ -1,9 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { Box, Container } from '@mui/material';
-import { MapContainer } from '@/components/map/MapContainer';
-import { NoLocationList } from '@/components/events/NoLocationList';
+import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import { Box, CircularProgress } from '@mui/material';
+
+const MapContainer = dynamic(
+  () => import('@/components/map/MapContainer').then((mod) => mod.MapContainer),
+  { ssr: false, loading: () => <CircularProgress /> }
+);
+import { EventList } from '@/components/events/EventList';
 import { EventDetail } from '@/components/events/EventDetail';
 import { SearchBar } from '@/components/search/SearchBar';
 import { FilterPanel } from '@/components/search/FilterPanel';
@@ -13,11 +18,16 @@ import type { EventFilters } from '@event-monitor/shared';
 export default function DashboardPage() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [filters, setFilters] = useState<EventFilters>({});
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { events, isLoading, error } = useEvents(filters);
 
   const eventsWithLocation = events?.filter((e) => e.has_location) ?? [];
-  const eventsWithoutLocation = events?.filter((e) => !e.has_location) ?? [];
+  const allEvents = events ?? [];
 
   const selectedEvent = events?.find((e) => e.id === selectedEventId);
 
@@ -44,21 +54,21 @@ export default function DashboardPage() {
         <FilterPanel filters={filters} onChange={setFilters} />
       </Box>
 
-      {/* Main Content: Map + No-Location List */}
+      {/* Main Content: Map + Event List */}
       <Box sx={{ flex: 1, display: 'flex', minHeight: 0 }}>
-        {/* Left Sidebar: No-Location Events */}
+        {/* Left Sidebar: All Events */}
         <Box
           sx={{
-            width: '20%',
-            minWidth: 250,
-            maxWidth: 350,
+            width: '31%',
+            minWidth: 300,
+            maxWidth: 450,
             borderRight: 1,
             borderColor: 'divider',
             overflow: 'auto',
           }}
         >
-          <NoLocationList
-            events={eventsWithoutLocation}
+          <EventList
+            events={allEvents}
             selectedEventId={selectedEventId}
             onEventSelect={setSelectedEventId}
             isLoading={isLoading}
@@ -67,11 +77,13 @@ export default function DashboardPage() {
 
         {/* Map */}
         <Box sx={{ flex: 1, position: 'relative' }}>
-          <MapContainer
-            events={eventsWithLocation}
-            selectedEventId={selectedEventId}
-            onEventSelect={setSelectedEventId}
-          />
+          {mounted && (
+            <MapContainer
+              events={eventsWithLocation}
+              selectedEventId={selectedEventId}
+              onEventSelect={setSelectedEventId}
+            />
+          )}
         </Box>
       </Box>
 

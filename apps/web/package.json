@@ -20,7 +20,7 @@
     "@mui/material": "^5.15.6",
     "@supabase/supabase-js": "^2.39.3",
     "h3-js": "^4.1.0",
-    "mapbox-gl": "^3.1.2",
+    "mapbox-gl": "^3.18.1",
     "next": "^14.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

@@ -1,10 +1,16 @@
 'use client';
 
-import { Box, FormControl, InputLabel, Select, MenuItem, Chip, ToggleButton, ToggleButtonGroup } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocationOn, LocationOff, Public } from '@mui/icons-material';
+import {
+  Box,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Chip,
+  Checkbox,
+  ListItemText,
+  SelectChangeEvent,
+} from '@mui/material';
 import type { EventFilters } from '@event-monitor/shared';
 
 interface FilterPanelProps {
@@ -21,12 +27,16 @@ const EVENT_TYPES = [
   'other',
 ];
 
+const LOCATION_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'with', label: 'Known' },
+  { value: 'without', label: 'Unknown' },
+];
+
 export function FilterPanel({ filters, onChange }: FilterPanelProps) {
-  const handleEventTypeChange = (eventType: string) => {
-    const currentTypes = filters.eventTypes ?? [];
-    const newTypes = currentTypes.includes(eventType)
-      ? currentTypes.filter((t) => t !== eventType)
-      : [...currentTypes, eventType];
+  const handleEventTypeChange = (event: SelectChangeEvent<string[]>) => {
+    const value = event.target.value;
+    const newTypes = typeof value === 'string' ? value.split(',') : value;
 
     onChange({
       ...filters,
@@ -34,11 +44,8 @@ export function FilterPanel({ filters, onChange }: FilterPanelProps) {
     });
   };
 
-  const handleLocationFilter = (
-    _: React.MouseEvent<HTMLElement>,
-    value: 'all' | 'with' | 'without' | null
-  ) => {
-    if (value === null) return;
+  const handleLocationChange = (event: SelectChangeEvent<string>) => {
+    const value = event.target.value as 'all' | 'with' | 'without';
 
     onChange({
       ...filters,
@@ -54,40 +61,53 @@ export function FilterPanel({ filters, onChange }: FilterPanelProps) {
 
   return (
     <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-      {/* Event Type Multi-Select */}
-      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-        {EVENT_TYPES.map((type) => (
-          <Chip
-            key={type}
-            label={type}
-            size="small"
-            variant={filters.eventTypes?.includes(type) ? 'filled' : 'outlined'}
-            onClick={() => handleEventTypeChange(type)}
-            sx={{ textTransform: 'capitalize' }}
-          />
-        ))}
-      </Box>
+      {/* Classification Multi-Select Dropdown */}
+      <FormControl size="small" sx={{ minWidth: 150 }}>
+        <InputLabel id="classification-label">Classification</InputLabel>
+        <Select
+          labelId="classification-label"
+          multiple
+          value={filters.eventTypes ?? []}
+          onChange={handleEventTypeChange}
+          label="Classification"
+          renderValue={(selected) => (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              {selected.map((value) => (
+                <Chip
+                  key={value}
+                  label={value}
+                  size="small"
+                  sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.75rem' }}
+                />
+              ))}
+            </Box>
+          )}
+        >
+          {EVENT_TYPES.map((type) => (
+            <MenuItem key={type} value={type}>
+              <Checkbox checked={(filters.eventTypes ?? []).includes(type)} size="small" />
+              <ListItemText primary={type} sx={{ textTransform: 'capitalize' }} />
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
-      {/* Location Filter */}
-      <ToggleButtonGroup
-        value={locationValue}
-        exclusive
-        onChange={handleLocationFilter}
-        size="small"
-      >
-        <ToggleButton value="all">
-          <Public sx={{ fontSize: 18, mr: 0.5 }} />
-          All
-        </ToggleButton>
-        <ToggleButton value="with">
-          <LocationOn sx={{ fontSize: 18, mr: 0.5 }} />
-          Located
-        </ToggleButton>
-        <ToggleButton value="without">
-          <LocationOff sx={{ fontSize: 18, mr: 0.5 }} />
-          No Location
-        </ToggleButton>
-      </ToggleButtonGroup>
+      {/* Location Single-Select Dropdown */}
+      <FormControl size="small" sx={{ minWidth: 140 }}>
+        <InputLabel id="location-label">Location</InputLabel>
+        <Select
+          labelId="location-label"
+          value={locationValue}
+          onChange={handleLocationChange}
+          label="Location"
+        >
+          {LOCATION_OPTIONS.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
       {/* Clear Filters */}
       {(filters.searchQuery || filters.eventTypes?.length || filters.hasLocation !== undefined) && (
