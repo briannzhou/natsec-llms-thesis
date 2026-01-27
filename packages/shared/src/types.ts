@@ -119,11 +119,13 @@ export interface GeocodedLocation {
 export interface Event {
   id: string;
   version: number;
+  model: string | null;
   parent_event_id: string | null;
   title: string;
   summary: string;
   event_type: string | null;
   confidence_score: number | null;
+  urgency_score: number;
   post_count: number;
   centroid_embedding: string | null;
   has_location: boolean;
@@ -195,6 +197,7 @@ export interface EventFilters {
   };
   eventTypes?: string[];
   hasLocation?: boolean;
+  model?: string;
 }
 
 // Database Schema Type (for Supabase client)

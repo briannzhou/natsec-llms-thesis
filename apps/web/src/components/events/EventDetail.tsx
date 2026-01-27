@@ -78,6 +78,13 @@ export function EventDetail({ event, isLoading }: EventDetailProps) {
             variant="outlined"
             size="small"
           />
+          {event.model && (
+            <Chip
+              label={event.model}
+              variant="outlined"
+              size="small"
+            />
+          )}
           {event.confidence_score !== null && (
             <Chip
               icon={<TrendingUp sx={{ fontSize: 16 }} />}

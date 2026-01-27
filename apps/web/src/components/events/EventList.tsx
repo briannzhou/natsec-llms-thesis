@@ -1,7 +1,7 @@
 'use client';
 
-import { Box, Typography } from '@mui/material';
-import { List } from '@mui/icons-material';
+import { Box, Typography, Chip } from '@mui/material';
+import { List, Close } from '@mui/icons-material';
 import { EventCardCompact, EventCardCompactSkeleton } from './EventCardCompact';
 import type { EventWithPosts } from '@event-monitor/shared';
 
@@ -10,6 +10,8 @@ interface EventListProps {
   selectedEventId: string | null;
   onEventSelect: (eventId: string) => void;
   isLoading: boolean;
+  selectedCellId?: string | null;
+  onClearCellFilter?: () => void;
 }
 
 export function EventList({
@@ -17,6 +19,8 @@ export function EventList({
   selectedEventId,
   onEventSelect,
   isLoading,
+  selectedCellId,
+  onClearCellFilter,
 }: EventListProps) {
   return (
     <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -29,6 +33,18 @@ export function EventList({
           {events.length}
         </Typography>
       </Box>
+
+      {selectedCellId && onClearCellFilter && (
+        <Chip
+          label={`Filtered to cell (${events.length} events)`}
+          onDelete={onClearCellFilter}
+          deleteIcon={<Close />}
+          size="small"
+          color="primary"
+          variant="outlined"
+          sx={{ mb: 1, alignSelf: 'flex-start' }}
+        />
+      )}
 
       <Box
         sx={{
